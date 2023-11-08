@@ -12,38 +12,45 @@ class Instance:
 
 def read_data(file_name):
     # DO NOT CHANGE THIS METHOD
-    f = open(file_name, 'r')
-
-    data = []
-    f.readline()
-    for inst in f.readlines():
-        if not re.search('\t', inst): continue
+    fl = open(file_name, 'r')
+    data_read = []
+    fl.readline()
+    for inst in fl.readlines():
+        if not re.search('\t', inst):
+            continue
         items = list(map(int, inst.strip().split('\t')))
-        attributes, label = items[:-1], items[-1]
-        data.append(Instance(attributes, label))
-    return data
+        attr, label = items[:-1], items[-1]
+        data_read.append(Instance(attr, label))
+    return data_read
 
 
+def sigmoid(x):
+    # Sigmoid function
+    return 1 / (1 + math.exp(-x))
 
 
-def train(instances, lr, epochs):
-    weights = [0] * (len(instances[0].attributes))
-
-    # YOUR CODE GOES HERE
-    #   Use the weight update rule to update the weights so that the error is minimized (with instances)
-    #   lr: learning rate
-    #   epochs: number of epochs (passes through instances) to train for
-
-
-    return weights
+def train(instances, lr, epochs, error_type="sigmoid"):
+    wt = [0] * (len(instances[0].attributes))
+    for epoch in range(epochs):
+        for inst in instances:
+            dot_pr = sum(w * a for w, a in zip(wt, inst.attributes))
+            output = sigmoid(dot_pr)
+            if error_type == "classifier":
+                predicted_label = 1 if output >= 0.5 else 0
+                error = inst.label - predicted_label
+            elif error_type == "sigmoid":
+                error = inst.label - output
+            for j, xj in enumerate(inst.attributes):
+                wt[j] += lr * error * output * (1 - output) * xj
+    return wt
 
 
 def predict(weights, attributes):
     # YOUR CODE GOES HERE
     #   Use weights to predict the label of instances with attributes
-    prediction = 0
-
-    return prediction
+    dot_pr = sum(w * a for w, a in zip(weights, attributes))
+    output = sigmoid(dot_pr)
+    return 1 if output >= 0.5 else 0
 
 
 def make_predictions(weights, instances):
@@ -64,19 +71,19 @@ def get_accuracy(weights, instances):
     return accuracy * 100
 
 
-def train_and_test(file_tr, file_te, lr, epochs):
-    # DO NOT CHANGE THIS METHOD
+def train_and_test(file_tr, file_te, lr, epochs, error_type="sigmoid"):
     instances_tr = read_data(file_tr)
     instances_te = read_data(file_te)
 
-    weights = train(instances_tr, lr, epochs)
+    weights = train(instances_tr, lr, epochs, error_type)
     return get_accuracy(weights, instances_te)
 
 
 def main(file_tr, file_te, lr, epochs):
-    # DO NOT CHANGE THIS METHOD
-    accuracy = train_and_test(file_tr, file_te, lr, epochs)
-    print(f"Accuracy on test set {accuracy}")
+    for error_type in ["classifier", "sigmoid"]:
+        accuracy = train_and_test(file_tr, file_te, lr, epochs, error_type)
+        print(f"Result: Accuracy on test set using {error_type} error: {round(accuracy, 2)}%")
+        print("**************************")
 
 
 if __name__ == "__main__":
